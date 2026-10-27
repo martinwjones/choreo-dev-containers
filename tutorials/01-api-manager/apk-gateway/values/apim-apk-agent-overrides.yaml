@@ -1,0 +1,3 @@
+# Local overrides applied on top of upstream/apim-apk-agent-1.3.0-values.yaml
+image:
+  pullPolicy: IfNotPresent

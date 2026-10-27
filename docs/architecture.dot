@@ -1,0 +1,122 @@
+// WSO2 lab system architecture. Render with: bash docs/render-diagrams.sh
+digraph architecture {
+  graph [rankdir=LR, compound=true, newrank=true, fontname="DejaVu Sans", fontsize=22,
+         labelloc=t, label="WSO2 Lab: Agent Manager with the Recipe Chatbot and Recipe MCP server\n ",
+         pad=0.4, nodesep=0.35, ranksep=0.9, bgcolor="white"];
+  node  [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11,
+         fillcolor="white", color="#5b6b7f", penwidth=1.2, margin="0.15,0.08"];
+  edge  [fontname="DejaVu Sans", fontsize=9, color="#4a5568", fontcolor="#2d3748", arrowsize=0.7];
+
+  // ---------------------------------------------------------------- outside
+  subgraph cluster_internet {
+    label="Internet"; style="rounded,dashed"; color="#a0aec0"; fontsize=13; fontcolor="#4a5568";
+    github   [label="GitHub\nmartinwjones/recipe-chat-agent\n(main.py, mcp_server.py, search.py)", fillcolor="#f7fafc"];
+    textchef [label="textualchef.com\nrecipes.json (4,695 recipes)", fillcolor="#f7fafc"];
+  }
+
+  // ---------------------------------------------------------------- the Mac
+  subgraph cluster_mac {
+    label="MacBook (Apple Silicon, 24 GB)"; style="rounded,filled"; fillcolor="#f0f4f8"; color="#5b6b7f";
+    fontsize=15;
+
+    browser [label="Browser\nRecipe Chat UI, AMP console", fillcolor="#e6fffa", color="#2c7a7b"];
+    claude  [label="Claude Code / Claude Desktop\n(MCP client)", fillcolor="#e6fffa", color="#2c7a7b"];
+    ollama  [label="Ollama :11434\nllama3.2 (chat)\nnomic-embed-text (embeddings)\nruns on the Mac GPU", fillcolor="#fefcbf", color="#b7791f"];
+
+    subgraph cluster_vm {
+      label="Rancher Desktop VM (VZ + Rosetta, 6 CPU, ~9 GB)"; style="rounded,filled"; fillcolor="#edf2f7"; fontsize=13;
+
+      subgraph cluster_devc {
+        label="VS Code Dev Container (Docker-in-Docker)\nports 5173, 8080, 19080 published to the Mac"; style="rounded,filled"; fillcolor="#e2e8f0"; fontsize=13;
+
+        webapp  [label="recipe-chat-web :5173\nReact app (Vite preview)\nThunderID sign-in (PKCE)", fillcolor="#ebf8ff", color="#2b6cb0"];
+        tools   [label="kubectl / helm / k3d\nlab scripts\nClaude Code (this session)", fillcolor="#f7fafc"];
+
+        subgraph cluster_apim {
+          label="k3d cluster: wso2-cluster (stopped)\nAPIM 4.5 + APK 1.3 (tutorial 01)"; style="rounded,dashed,filled"; fillcolor="#f7fafc";
+          color="#a0aec0"; fontcolor="#718096"; fontsize=11;
+          apim [label="APIM control plane, APK gateway, APK agent", fontcolor="#718096", color="#a0aec0"];
+        }
+
+        subgraph cluster_amp {
+          label="k3d cluster: amp-local (WSO2 Agent Manager 1.0 on OpenChoreo 1.2)"; style="rounded,filled"; fillcolor="#fffaf0"; color="#c05621"; fontsize=14;
+
+          subgraph cluster_cp {
+            label="Agent Manager control plane"; style="rounded,filled"; fillcolor="#fff5eb"; fontsize=12;
+            console  [label="AMP console + API\nconsole.amp.localhost:8080\napi.amp.localhost:8080", fillcolor="white"];
+            thunderp [label="Platform ThunderID\nthunder.amp.localhost\n(console/API logins)", fillcolor="white"];
+          }
+
+          subgraph cluster_idp {
+            label="Default environment identity"; style="rounded,filled"; fillcolor="#faf5ff"; fontsize=12;
+            thundere [label="Environment ThunderID\ndefault-idp.amp.localhost:8080\nuser chef / chef\napp recipe-chat-web", fillcolor="white", color="#6b46c1"];
+          }
+
+          subgraph cluster_gw {
+            label="API Platform gateway (default-default)"; style="rounded,filled"; fillcolor="#f0fff4"; fontsize=12;
+            agentgw [label="Agent gateway\n*.am-gateway.localhost:19080\nJWT (ThunderKeyManager), API keys, CORS", fillcolor="white", color="#2f855a"];
+            aigw    [label="AI Gateway\nLLM provider \"ollama\"\n(OpenAI-compatible, API-Key header,\nguardrails)", fillcolor="white", color="#2f855a"];
+          }
+
+          subgraph cluster_sandbox {
+            label="Agent sandbox (dp-default-default-default-…)\negress limited by NetworkPolicy"; style="rounded,filled"; fillcolor="#ebf8ff"; fontsize=12; color="#2b6cb0";
+            chat [label="recipe-chat agent :8000\nFastAPI POST /chat\nroute → filters → search → answer", fillcolor="white", color="#2b6cb0", penwidth=1.8];
+            mcps [label="recipe-mcp :8000\nMCP server POST /mcp\nsearch_recipes, get_recipe,\nlist_filter_values", fillcolor="white", color="#2b6cb0", penwidth=1.8];
+          }
+
+          subgraph cluster_data {
+            label="recipe-chatbot namespace"; style="rounded,filled"; fillcolor="#fffff0"; fontsize=12;
+            qdrant [label="Qdrant :6333\ncollection \"recipes\"\n4,695 vectors + metadata", shape=cylinder, fillcolor="white", color="#b7791f"];
+            ingest [label="recipe-ingest Job\n(setup.sh)", fillcolor="white"];
+          }
+
+          subgraph cluster_wf {
+            label="OpenChoreo workflow plane"; style="rounded,filled"; fillcolor="#f7fafc"; fontsize=12;
+            argo     [label="Argo Workflows\ncheckout → buildpack build\n→ publish → deploy", fillcolor="white"];
+            registry [label="Image registry\nhost.k3d.internal:10082", shape=cylinder, fillcolor="white"];
+          }
+
+          subgraph cluster_obs {
+            label="OpenChoreo observability plane"; style="rounded,filled"; fillcolor="#f7fafc"; fontsize=12;
+            obs [label="OTel collector, OpenSearch,\nPrometheus (traces, logs, metrics)", fillcolor="white"];
+          }
+        }
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- request paths
+  // Chat
+  browser  -> webapp   [label="1. open :5173", color="#2b6cb0", fontcolor="#2b6cb0"];
+  browser  -> thundere [label="2. sign in (PKCE)", color="#6b46c1", fontcolor="#6b46c1"];
+  webapp   -> agentgw  [label="3. POST /recipe-chat/chat\nBearer JWT", color="#2b6cb0", fontcolor="#2b6cb0", penwidth=1.6];
+  agentgw  -> chat     [xlabel="validated", color="#2b6cb0", fontcolor="#2b6cb0", penwidth=1.6, weight=3];
+  chat     -> aigw     [label="route / answer / embed", color="#b7791f", fontcolor="#b7791f"];
+  chat     -> qdrant   [label="vector search + filters\n(both components)", color="#b7791f", fontcolor="#b7791f"];
+
+  // MCP
+  claude   -> agentgw  [label="POST /recipe-mcp/mcp\nX-API-Key", color="#2c7a7b", fontcolor="#2c7a7b", penwidth=1.6];
+  agentgw  -> mcps     [xlabel="validated", color="#2c7a7b", fontcolor="#2c7a7b", penwidth=1.6, weight=3];
+  mcps     -> aigw     [label="embed query", color="#b7791f", fontcolor="#b7791f"];
+  mcps     -> qdrant   [color="#b7791f"];
+
+  aigw     -> ollama   [label="host.lima.internal:11434/v1", color="#b7791f", fontcolor="#b7791f", penwidth=1.6];
+  agentgw  -> thundere [label="JWKS", style=dashed, color="#6b46c1", fontcolor="#6b46c1"];
+
+  // Data load
+  textchef -> ingest   [label="recipes.json\n(one download)", style=dashed];
+  ingest   -> ollama   [label="embed 4,695 docs", style=dashed, color="#b7791f", fontcolor="#b7791f"];
+  ingest   -> qdrant   [label="upsert", style=dashed];
+
+  // Build and deploy
+  tools    -> console  [label="deploy.sh / setup-mcp.sh\n(REST API)", style=dashed];
+  console  -> argo     [label="build", style=dashed];
+  github   -> argo     [label="git clone", style=dashed];
+  argo     -> registry [label="push image", style=dashed];
+  registry -> mcps     [style=dashed, label="pull image", lhead=cluster_sandbox];
+
+  // Observability
+  chat     -> obs      [label="traces", style=dotted];
+  mcps     -> obs      [label="traces", style=dotted];
+  browser  -> console  [label="admin", style=dotted];
+}

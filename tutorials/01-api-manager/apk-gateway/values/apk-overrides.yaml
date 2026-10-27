@@ -1,0 +1,24 @@
+# Local overrides applied on top of upstream/apk-1.3.0-1-cp-enabled-values.yaml
+
+# APIM is the key manager in this scenario, so APK's own IdP (and its
+# PostgreSQL database) are not needed. Disabling them saves ~1 GB of memory.
+idp:
+  enabled: false
+postgresql:
+  enabled: false
+
+# Bitnami removed its free images from docker.io/bitnami in 2025; the pinned
+# chart versions still reference them, so pull from bitnamilegacy instead.
+redis:
+  global:
+    security:
+      allowInsecureImages: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/redis
+    tag: 7.4.2-debian-12-r4
+  master:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi

@@ -1,0 +1,11 @@
+# Qdrant for the recipe chatbot (chart qdrant/qdrant 1.19.2). ~5k recipes need well under
+# 100 MB, so the chart's defaults (10 Gi volume, no limits) are trimmed for a laptop VM.
+replicaCount: 1
+persistence:
+  size: 1Gi
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 512Mi

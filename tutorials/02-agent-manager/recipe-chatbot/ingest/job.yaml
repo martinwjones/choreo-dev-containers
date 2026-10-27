@@ -1,0 +1,34 @@
+# Runs ingest.py (mounted from the recipe-ingest ConfigMap) once. setup.sh recreates it.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: recipe-ingest
+  namespace: recipe-chatbot
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: ingest
+          image: python:3.12.14-slim
+          command: ["python", "/ingest/ingest.py"]
+          env:
+            - name: QDRANT_URL
+              value: http://qdrant.recipe-chatbot.svc.cluster.local:6333
+            - name: OLLAMA_URL
+              value: OLLAMA_URL_PLACEHOLDER
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              memory: 256Mi
+          volumeMounts:
+            - name: ingest
+              mountPath: /ingest
+      volumes:
+        - name: ingest
+          configMap:
+            name: recipe-ingest

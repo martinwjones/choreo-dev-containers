@@ -1,0 +1,27 @@
+# Local overrides applied on top of upstream/apim-acp-4.5.0-values.yaml
+wso2:
+  deployment:
+    image:
+      # The upstream sample points at a personal RC image that no longer exists.
+      # This is the official multi-arch (amd64/arm64) wso2/wso2am-acp:4.5.0 image.
+      registry: "docker.io"
+      repository: "wso2/wso2am-acp"
+      digest: "sha256:897db346097e3a332a7a4117bab7e9b1f413451788e39fccc11d59699b21e311"
+      imagePullPolicy: IfNotPresent
+    # Trimmed to fit a laptop-sized Docker VM (~6 GB).
+    resources:
+      requests:
+        memory: "1536Mi"
+        cpu: "500m"
+      limits:
+        memory: "2560Mi"
+        cpu: "3000m"
+      jvm:
+        memory:
+          xms: "1024m"
+          xmx: "1536m"
+    # Startup on a laptop is slower than the upstream probes allow.
+    startupProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      failureThreshold: 60

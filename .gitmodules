@@ -1,0 +1,3 @@
+[submodule "tutorials/02-agent-manager/recipe-chatbot/agent"]
+	path = tutorials/02-agent-manager/recipe-chatbot/agent
+	url = https://github.com/martinwjones/recipe-chat-agent.git

@@ -1,0 +1,25 @@
+# Agent Manager runs agents in a sandbox whose NetworkPolicy only allows egress to DNS, the
+# platform gateways and the public internet. NetworkPolicies are additive, so this one opens
+# exactly one more path: one component (recipe-chat or recipe-mcp) to Qdrant on 6333.
+# common.sh's allow_qdrant applies it, substituting COMPONENT and AGENT_NAMESPACE.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: COMPONENT-egress-qdrant
+  namespace: AGENT_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      openchoreo.dev/component: COMPONENT
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: recipe-chatbot
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: qdrant
+      ports:
+        - port: 6333
+          protocol: TCP
