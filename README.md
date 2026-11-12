@@ -73,6 +73,12 @@ The diagram's source is [docs/architecture.dot](docs/architecture.dot); re-rende
 │       │   ├── uninstall.sh  # Removes the platform (--delete-cluster removes the cluster)
 │       │   └── common.sh     # Image version + helpers for the installer container
 │       └── recipe-chatbot/   # RAG recipe chatbot agent on Agent Manager (needs quick-start)
+│   └── 03-api-manager-fundamentals/  # Training unit: APIM 4.7.0 all-in-one (Helm), Moesif, port offset
+│       ├── README.md         # Training steps + how they map onto the lab
+│       ├── install.sh        # Deploys APIM 4.7.0 (MOESIF_APP_ID / PORT_OFFSET optional)
+│       ├── explore.sh        # Shows <APIM_HOME>, deployment.toml, ports in the pod
+│       ├── uninstall.sh      # Removes the scenario, keeps the cluster
+│       └── values/           # Upstream Helm values + local overrides
 │           ├── README.md     # How it works, how to run it, troubleshooting
 │           ├── setup.sh      # Qdrant + recipe ingest, Ollama LLM provider, ThunderID user/app
 │           ├── deploy.sh     # Builds/deploys the agent from GitHub, secures it with ThunderID
@@ -112,7 +118,9 @@ Ensure the following tools are installed on your host machine:
 5. Wait for the container image to build and execute `scripts/init-environment.sh`.
 6. Deploy a scenario. Each one has its own README with the details:
    [API Manager + APK](tutorials/01-api-manager/apk-gateway/README.md) and
-   [Agent Manager](tutorials/02-agent-manager/quick-start/README.md).
+   [Agent Manager](tutorials/02-agent-manager/quick-start/README.md) and
+   [API Manager fundamentals](tutorials/03-api-manager-fundamentals/README.md)
+   (APIM 4.7.0 training lab; `bash tutorials/03-api-manager-fundamentals/install.sh`).
 
    APIM with APK as the gateway
    ([upstream guide](https://apk.docs.wso2.com/en/latest/control-plane/apk-as-gateway-in-apim/apk-as-gateway-in-apim-qsg/)):
