@@ -36,14 +36,9 @@ Status:
   (run `python mcp_server.py`, schema `/mcp-openapi.yaml`); endpoint
   `http://default-default.am-gateway.localhost:19080/recipe-mcp/mcp`, header `X-API-Key`
   (key in `.state/mcp-api-key`). Tools: search_recipes, get_recipe, list_filter_values.
-- `tutorials/03-api-manager-fundamentals` — training unit "Getting Started with WSO2 API Manager"
-  (README holds the training text + a lab section). APIM **4.7.0 all-in-one** chart 4.7.0-1
-  (downloaded .tgz, sha256-checked: the release index's relative URLs 404 for `helm repo add`),
-  release `apim`, ns `apim`, ingress `am.wso2.com` + `gw.wso2.com`, H2 DBs, image
-  `wso2/wso2am:4.7.0` by digest. Encryption key + Moesif Application ID in its `.state/`.
-  Conflicts with tutorial 01 (same am.wso2.com) — install.sh refuses if 01 is installed.
-  **Written 2026-11-11, not yet run.** `PORT_OFFSET` path unverified (chart sets both
-  `offset` and shifted transport ports; ingress hard-codes 9443/8243).
+- Tutorial 03 (APIM 4.7.0 all-in-one training unit) was removed on 2026-11-12 at the user's
+  request, before it was ever run; tutorial 01's APIM 4.5 is used instead. It is recoverable from
+  git (commit 5fafe05). Its Moesif Application ID was kept in `/workspaces/wso2/.state/moesif-app-id`.
 - Planned (in README architecture, not built yet): Identity Server, Micro Integrator.
 
 ## Multiple clusters

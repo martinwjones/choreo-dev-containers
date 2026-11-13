@@ -8,7 +8,7 @@ Welcome to the **WSO2 & OpenChoreo Development Lab**. This repository provides a
 
 This environment utilizes **VS Code Dev Containers** powered by **Docker-in-Docker (DinD)** and lightweight **k3d (Kubernetes in Docker)**.
 
-```
+```text
 +-------------------------------------------------------------------------+
 | Host Operating System                                                   |
 |   - Visual Studio Code                                                  |
@@ -39,6 +39,7 @@ The diagram's source is [docs/architecture.dot](docs/architecture.dot); re-rende
 `bash docs/render-diagrams.sh`.
 
 ### Key Advantages:
+
 1. **Host Cleanliness**: All Java runtimes, database instances, CLI tools, and Kubernetes clusters run strictly inside container layers.
 2. **Instant Team Onboarding**: Teammates can clone this repo and launch a fully operational cluster with a single click in VS Code.
 3. **No Port Conflicts**: Port mappings are isolated within container network namespaces.
@@ -73,12 +74,6 @@ The diagram's source is [docs/architecture.dot](docs/architecture.dot); re-rende
 │       │   ├── uninstall.sh  # Removes the platform (--delete-cluster removes the cluster)
 │       │   └── common.sh     # Image version + helpers for the installer container
 │       └── recipe-chatbot/   # RAG recipe chatbot agent on Agent Manager (needs quick-start)
-│   └── 03-api-manager-fundamentals/  # Training unit: APIM 4.7.0 all-in-one (Helm), Moesif, port offset
-│       ├── README.md         # Training steps + how they map onto the lab
-│       ├── install.sh        # Deploys APIM 4.7.0 (MOESIF_APP_ID / PORT_OFFSET optional)
-│       ├── explore.sh        # Shows <APIM_HOME>, deployment.toml, ports in the pod
-│       ├── uninstall.sh      # Removes the scenario, keeps the cluster
-│       └── values/           # Upstream Helm values + local overrides
 │           ├── README.md     # How it works, how to run it, troubleshooting
 │           ├── setup.sh      # Qdrant + recipe ingest, Ollama LLM provider, ThunderID user/app
 │           ├── deploy.sh     # Builds/deploys the agent from GitHub, secures it with ThunderID
@@ -95,32 +90,37 @@ The diagram's source is [docs/architecture.dot](docs/architecture.dot); re-rende
 ## 🚀 Quick Start Guide
 
 ### Prerequisites
+
 Ensure the following tools are installed on your host machine:
+
 * [Docker Desktop](https://www.docker.com/) or [Rancher Desktop](https://rancherdesktop.io/) (*Note: Disable Rancher Desktop's built-in Kubernetes cluster in settings*).
 * [Visual Studio Code](https://code.visualstudio.com/).
 * VS Code **Dev Containers** Extension (`ms-vscode-remote.remote-containers`).
 
 ### Launching the Lab
+
 1. Clone this repository to your computer, including the recipe agent's code, which is a
    [Git submodule](https://git-scm.com/book/en/v2/Git-Tools-Submodules)
    (`tutorials/02-agent-manager/recipe-chatbot/agent` → `martinwjones/recipe-chat-agent`):
+
    ```bash
    git clone --recurse-submodules <repository-url>
    cd wso2
    ```
+
    Already cloned without it? Run `git submodule update --init`.
 2. Open the folder in Visual Studio Code:
+
    ```bash
-   code .
+      code .
    ```
+
 3. Press `Cmd + Shift + P` (or `Ctrl + Shift + P`) to open the VS Code Command Palette.
 4. Select **Dev Containers: Reopen in Container**.
 5. Wait for the container image to build and execute `scripts/init-environment.sh`.
 6. Deploy a scenario. Each one has its own README with the details:
    [API Manager + APK](tutorials/01-api-manager/apk-gateway/README.md) and
-   [Agent Manager](tutorials/02-agent-manager/quick-start/README.md) and
-   [API Manager fundamentals](tutorials/03-api-manager-fundamentals/README.md)
-   (APIM 4.7.0 training lab; `bash tutorials/03-api-manager-fundamentals/install.sh`).
+   [Agent Manager](tutorials/02-agent-manager/quick-start/README.md).
 
    APIM with APK as the gateway
    ([upstream guide](https://apk.docs.wso2.com/en/latest/control-plane/apk-as-gateway-in-apim/apk-as-gateway-in-apim-qsg/)):
