@@ -9,12 +9,12 @@ NS=apk
 use_cluster "$CLUSTER_NAME" || die "Cannot reach cluster '$CLUSTER_NAME'"
 
 log "Uninstalling Helm releases"
-for r in apim-apk-agent apk apim; do
+for r in apim-gateway apim-apk-agent apk apim; do
   helm uninstall "$r" -n "$NS" --wait --timeout 5m 2>/dev/null || true
 done
 
-log "Deleting namespace $NS"
-kubectl delete namespace "$NS" --ignore-not-found --timeout 3m
+log "Deleting namespaces $NS and samples"
+kubectl delete namespace "$NS" samples --ignore-not-found --timeout 3m
 
 # Cluster-scoped leftovers: APK, Gateway API and cert-manager CRDs and webhooks.
 log "Deleting CRDs and webhooks"

@@ -1,0 +1,92 @@
+# Local overrides applied on top of upstream/apim-universal-gw-4.5.0-1-values.yaml
+#
+# Adds API Manager's own (Synapse) gateway next to APK, for API types APK 1.3 can't serve
+# (WebSocket, WebSub, SSE...). It serves the control plane's "Default_synapse" environment.
+
+# The control plane's Default_synapse environment calls the gateway at wso2am-gateway-service:9443.
+fullnameOverride: wso2am-gateway
+
+kubernetes:
+  ingress:
+    websocket:
+      # The ingress forwards to the gateway's wss port (8099), which speaks TLS.
+      annotations:
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+        nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+
+wso2:
+  apim:
+    configurations:
+      # Same as the control plane: the gateway calls it with these admin credentials.
+      adminUsername: "admin"
+      adminPassword: "admin"
+      # The chart expects an external shared database and leaves it blank ("Cannot initialize
+      # the realm"). Like the control plane, use the embedded H2 database shipped in the image.
+      databases:
+        type: "h2"
+        jdbc:
+          driver: "org.h2.Driver"
+        shared_db:
+          url: "jdbc:h2:./repository/database/WSO2SHARED_DB;DB_CLOSE_ON_EXIT=FALSE"
+          username: "wso2carbon"
+          password: "wso2carbon"
+      # Tutorial 01's control plane (release apim): key manager, traffic manager and event hub.
+      km:
+        serviceUrl: "apim-wso2am-acp-service"
+        # The chart's template uses km.servicePort but its values don't define it, which
+        # renders "https://apim-wso2am-acp-service:/services/".
+        servicePort: 9443
+      sync_runtime_artifacts:
+        gateway:
+          labels: ["Default_synapse"]
+      throttling:
+        serviceUrl: "apim-wso2am-acp-service"
+        urls: ["apim-wso2am-acp-1-service"]
+      # The chart always mounts its keystores from the secret apim-keystore-secret, which
+      # install-gateway.sh creates from the control plane's own (default) keystores, so the
+      # gateway trusts the control plane's certificates and tokens. Blank passwords would
+      # render as "" in deployment.toml; these are WSO2's default keystore passwords.
+      security:
+        keystores:
+          tls:
+            password: "wso2carbon"
+            keyPassword: "wso2carbon"
+        truststore:
+          password: "wso2carbon"
+      # Without the event hub the gateway never hears about newly deployed APIs.
+      eventhub:
+        enabled: true
+        serviceUrl: "apim-wso2am-acp-service"
+        urls: ["apim-wso2am-acp-1-service"]
+  deployment:
+    image:
+      # Official multi-arch (amd64/arm64) wso2/wso2am-universal-gw:4.5.0 image.
+      registry: "docker.io"
+      repository: "wso2/wso2am-universal-gw"
+      digest: "sha256:3dadd18b770bae5850801991e11c657b94218447f5d18745487388a25e59714e"
+      imagePullPolicy: IfNotPresent
+    # One small replica instead of 2 x 2-3 GB, to fit next to APIM and APK in the lab VM.
+    replicas: 1
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        memory: "1Gi"
+        cpu: "250m"
+      limits:
+        memory: "2Gi"
+        cpu: "2000m"
+      jvm:
+        memory:
+          xms: "512m"
+          xmx: "1024m"
+    # Startup on a laptop is slower than the upstream probes allow.
+    startupProbe:
+      initialDelaySeconds: 60
+      periodSeconds: 10
+      failureThreshold: 60
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0

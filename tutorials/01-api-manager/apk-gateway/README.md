@@ -75,6 +75,90 @@ To publish your own API, create it in the Publisher with **APK** as the gateway 
 revision to the `Default` environment, publish it, then subscribe from the Devportal. The APK
 agent picks it up within about 30 seconds.
 
+## Add API Manager's own gateway (WebSocket and other streaming APIs)
+
+APK 1.3 only serves REST, GraphQL and gRPC APIs. For **WebSocket**, WebSub and SSE APIs, add API
+Manager's own gateway (the 4.5.0 "universal gateway"). It serves the control plane's second
+gateway environment, **`Default_synapse`**, next to APK's `Default`:
+
+```bash
+bash tutorials/01-api-manager/apk-gateway/install-gateway.sh    # ~5 min, ~1.5 GB more memory
+```
+
+It also deploys WSO2's sample WebSocket chat backend used by the
+[Create and Publish a WebSocket API](https://apim.docs.wso2.com/en/latest/tutorials/streaming-api/create-and-publish-websocket-api/)
+guide. When following that guide in this lab:
+
+| Guide says | Use in this lab |
+| :--- | :--- |
+| Endpoint `ws://localhost:8080` (and starting the sample with `npm start`) | `ws://websocket-backend.samples.svc.cluster.local:8080` (already running) |
+| Topic URL mappings (`/notifications`, `/rooms?room={uri.var.roomID}`) | Same. Without a URL mapping the gateway connects to the backend's `/`, and no messages arrive |
+| Gateway environment | Deploy the revision to **`Default_synapse`**, not `Default` (APK can't run WebSocket APIs) |
+| Invoke `ws://localhost:9099/<context>/<version>/<topic>` | `wss://websocket.wso2.com/<context>/<version>/<topic>` (port 443, TLS, through the ingress), with header `Authorization: Bearer <token>` |
+
+On the Mac, add `127.0.0.1 gw.wso2.com websocket.wso2.com` to `/etc/hosts` (the dev container
+gets it automatically). The certificate is self-signed: with `wscat`, add `-n`.
+
+What `install-gateway.sh` sets (see [values/apim-gateway-overrides.yaml](values/apim-gateway-overrides.yaml)):
+
+- **Connection to the control plane:** key manager, throttling and event hub point at release
+  `apim`'s services; the event hub is enabled so the gateway hears about deployments.
+- **Service name `wso2am-gateway-service`:** what the control plane's `Default_synapse`
+  environment calls.
+- **Keystores:** the chart always mounts the secret `apim-keystore-secret`; the script creates it
+  from the control plane's own default keystores, so the gateway trusts its tokens.
+- **Database and admin:** the chart leaves the shared database blank ("Cannot initialize the
+  realm"); it uses the image's embedded H2, like the control plane, with admin `admin`/`admin`.
+- **Upstream chart bug fixed:** the key manager URL renders without a port unless
+  `km.servicePort` is set.
+- One replica with 1 GB JVM heap, instead of two with 2-3 GB each.
+
+### The Pizza Shack sample API
+
+The Publisher's **Pizza Shack** sample points at `https://am.wso2.com/am/sample/pizzashack/v1/api`,
+a backend bundled only in the all-in-one API Manager. This lab's control plane and gateways
+don't include it, so calls fail with HTTP 500 "Error connecting to the back end".
+`install-gateway.sh` deploys a mock of it ([samples/pizzashack-backend.yaml](samples/pizzashack-backend.yaml):
+menu, place/get/update/delete orders). Set the API's production and sandbox endpoints to
+
+```
+http://pizzashack-backend.samples.svc.cluster.local:8080/am/sample/pizzashack/v1/api
+```
+
+and deploy a new revision to `Default_synapse`. (Done for the current PizzaShack API on
+2026-11-16; a newly created sample API needs it again.)
+
+**Calling it from the Developer Portal's Try Out:** the browser calls `https://gw.wso2.com`
+directly, so the Mac needs `gw.wso2.com` in `/etc/hosts` and the browser must have accepted
+that host's self-signed certificate (open https://gw.wso2.com once and click through the
+warning). Otherwise the browser reports a CORS / network failure even though CORS is fine.
+
+## Developer Portal application sharing
+
+Application sharing is on (`[apim.devportal] enable_application_sharing = true`, set by
+`enableApplicationSharing` in [values/apim-acp-overrides.yaml](values/apim-acp-overrides.yaml)):
+Developer Portal applications are shared between users of the same organization.
+
+To change any API Manager setting, edit `values/apim-acp-overrides.yaml` (the chart writes
+`deployment.toml` from it; editing the file inside the pod is lost on restart) and re-run
+`install.sh`, keeping the next section in mind.
+
+## API Manager's data is not persistent
+
+API Manager stores everything (APIs, applications, subscriptions, users) in the H2 database
+inside its pod. **Anything that replaces the pod wipes it:** a `helm upgrade` of `apim` (such
+as a config change via `install.sh`), deleting the pod, or a reinstall. (Stopping and starting
+the cluster has kept it so far.) To keep your work, export the APIs first and import them after:
+
+```bash
+# Before: export every API (Publisher REST API, same as apictl export)
+#   GET  /api/am/publisher/v4/apis/export?apiId=<id>&format=YAML&preserveStatus=true
+# After:  import, then deploy a new revision to the original gateway environment
+#   POST /api/am/publisher/v4/apis/import?preserveProvider=true  (multipart: file=@<api>.zip)
+```
+
+Exports don't include deployments, applications or subscriptions; redeploy and resubscribe.
+
 ## Check it
 
 ```bash

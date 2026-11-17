@@ -14,6 +14,27 @@ Status:
 - `tutorials/01-api-manager/apk-gateway` — **working end to end**: APIM 4.5.0 control plane +
   APK 1.3.0 gateway + APK agent. `populate.sh` creates SampleService → APK, gets a token and
   gets HTTP 200 through `https://default.gw.wso2.com:9095/sample-api/0.1.0/uuid`.
+  **+ API Manager gateway** (2026-11-13, `install-gateway.sh`): universal-gw 4.5.0-1 as release
+  `apim-gateway` (fullnameOverride `wso2am-gateway` → service `wso2am-gateway-service`, which the
+  ACP's `Default_synapse` env expects), for WebSocket/WebSub (APK 1.3 = REST/GraphQL/gRPC only).
+  Needed: secret `apim-keystore-secret` (copied from the ACP pod's default JKS), H2 shared_db +
+  admin/admin, `km.servicePort` (chart bug), eventhub enabled. WS clients: `wss://websocket.wso2.com/
+  <ctx>/<ver>/<topic>` via ingress (→ :8099, backend-protocol HTTPS). Sample WS backend in ns
+  `samples` (`ws://websocket-backend.samples.svc.cluster.local:8080`). Topics need a URL mapping or
+  the gateway connects to the backend's `/`. Verified end to end (401 without token, message relayed).
+  **ACP data is NOT persistent** (H2 in the pod's filesystem, no PVC; the chart can only persist
+  Solr): any pod replacement (helm upgrade, delete) wipes APIs/apps. Before upgrading `apim`,
+  export APIs (`GET …/publisher/v4/apis/export?apiId=&format=YAML&preserveStatus=true`), then
+  import (`POST …/apis/import?preserveProvider=true`) and redeploy revisions per environment.
+  Done 2026-11-16 to enable Devportal application sharing (`enableApplicationSharing: true`);
+  exports + raw H2 backup in `tutorials/01-api-manager/apk-gateway/.state/`. Helm repo
+  `wso2apim` may need re-adding in a new session before `helm upgrade`.
+  **Pizza Shack sample** has no backend in the split setup (all-in-one only): mock in ns `samples`
+  (`samples/pizzashack-backend.yaml`, deployed by install-gateway.sh); PizzaShack API endpoints
+  repointed to it 2026-11-16. In-cluster `am.wso2.com` resolves to 127.0.0.1 (useless as a backend
+  host). Browser "CORS failure" on Try Out = gw.wso2.com not in Mac /etc/hosts or its cert not
+  accepted; gateway CORS itself is fine. A 401 "Invalid JWT token" right after Try Out = an older,
+  revoked token.
 - `tutorials/02-agent-manager/quick-start` — WSO2 Agent Manager 1.0.0 (OpenChoreo 1.2.0 underneath).
   Runs the official `ghcr.io/wso2/amp-quick-start` image as container `amp-quick-start` against
   our DinD socket with `--network=host`; its installer creates a **separate k3d cluster `amp-local`**.

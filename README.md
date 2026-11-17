@@ -64,7 +64,9 @@ The diagram's source is [docs/architecture.dot](docs/architecture.dot); re-rende
 │   │       ├── README.md     # How to run and use this demo on its own
 │   │       ├── install.sh    # Deploys APK, APIM and the APK agent
 │   │       ├── populate.sh   # Creates a sample API/app/subscription and calls it via APK
-│   │       ├── uninstall.sh  # Removes the scenario, keeps the cluster
+│   │       ├── install-gateway.sh  # Adds APIM's own gateway (WebSocket etc.) + sample WS backend
+│   │       ├── uninstall.sh  # Removes the scenario (incl. the gateway), keeps the cluster
+│   │       ├── samples/      # Sample WebSocket backend for the WebSocket API guide
 │   │       └── values/       # Upstream Helm values + local overrides
 │   └── 02-agent-manager/
 │       ├── quick-start/      # WSO2 Agent Manager 1.0 on OpenChoreo (own cluster: amp-local)
@@ -128,6 +130,14 @@ Ensure the following tools are installed on your host machine:
    bash tutorials/01-api-manager/apk-gateway/install.sh    # ~10-15 min on first run
    bash tutorials/01-api-manager/apk-gateway/populate.sh   # sample API -> APK, calls it
    ```
+   APK serves REST, GraphQL and gRPC APIs only. For WebSocket (and WebSub/SSE) APIs, add
+   API Manager's own gateway, which serves the `Default_synapse` environment next to APK's
+   `Default`, plus WSO2's sample WebSocket backend
+   ([WebSocket API guide](https://apim.docs.wso2.com/en/latest/tutorials/streaming-api/create-and-publish-websocket-api/);
+   see tutorial 01's README for the lab equivalents of the guide's URLs):
+   ```bash
+   bash tutorials/01-api-manager/apk-gateway/install-gateway.sh  # ~5 min, ~1.5 GB more memory
+   ```
    Or WSO2 Agent Manager ([upstream guide](https://wso2.com/agent-platform/docs/v1.0.0/get-started/quick-start/)):
    ```bash
    bash tutorials/02-agent-manager/quick-start/install.sh  # ~15-20 min, needs 8 GB for Docker
@@ -154,7 +164,7 @@ The following ports are published to your host machine by Docker (`appPort` in `
 
 | Port | Target Application / Service |
 | :--- | :--- |
-| `443` | NGINX ingress: APIM Publisher / Devportal / Admin at `https://am.wso2.com` |
+| `443` | NGINX ingress: APIM Publisher / Devportal / Admin / Carbon at `https://am.wso2.com`; API Manager gateway at `https://gw.wso2.com` and WebSocket APIs at `wss://websocket.wso2.com` |
 | `80` | NGINX ingress (HTTP) |
 | `9095` | APK gateway at `https://default.gw.wso2.com:9095` |
 | `8080` | Agent Manager console at `http://console.amp.localhost:8080` (also API and Thunder login) |
@@ -170,8 +180,10 @@ from a browser on your host, add this line to the host's `/etc/hosts`
 (`C:\Windows\System32\drivers\etc\hosts` on Windows):
 
 ```
-127.0.0.1 am.wso2.com api.am.wso2.com idp.am.wso2.com default.gw.wso2.com
+127.0.0.1 am.wso2.com api.am.wso2.com idp.am.wso2.com default.gw.wso2.com gw.wso2.com websocket.wso2.com
 ```
+
+(`gw.wso2.com` and `websocket.wso2.com` are only needed once `install-gateway.sh` has run.)
 
 Default credentials: `admin` / `admin`. The certificates are self-signed, so accept the browser warning.
 

@@ -1,0 +1,64 @@
+# WSO2's sample WebSocket chat backend (wso2/samples-apim streaming-api-backends/websocket-backend),
+# used by the "Create and Publish a WebSocket API" guide. install-gateway.sh puts its index.js and
+# package.json (pinned commit) in the websocket-backend ConfigMap.
+#   ws://websocket-backend.samples.svc.cluster.local:8080/notifications
+#   ws://websocket-backend.samples.svc.cluster.local:8080/rooms?room=room1   (room1, room2, common)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket-backend
+  namespace: samples
+  labels:
+    app.kubernetes.io/name: websocket-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: websocket-backend
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: websocket-backend
+    spec:
+      containers:
+        - name: backend
+          image: node:22.21.1-alpine
+          # The ConfigMap is read-only, so copy the app to a writable dir for npm install.
+          command: ["sh", "-c", "cp /src/* /app/ && cd /app && npm install --no-audit --no-fund && exec npm start"]
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            periodSeconds: 5
+            failureThreshold: 30
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          volumeMounts:
+            - name: src
+              mountPath: /src
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: src
+          configMap:
+            name: websocket-backend
+        - name: app
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket-backend
+  namespace: samples
+spec:
+  selector:
+    app.kubernetes.io/name: websocket-backend
+  ports:
+    - name: ws
+      port: 8080
+      targetPort: 8080

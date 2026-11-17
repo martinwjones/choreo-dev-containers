@@ -1,5 +1,11 @@
 # Local overrides applied on top of upstream/apim-acp-4.5.0-values.yaml
 wso2:
+  apim:
+    configurations:
+      devportal:
+        # Renders [apim.devportal] enable_application_sharing = true in deployment.toml:
+        # Developer Portal applications are shared between users of the same organization.
+        enableApplicationSharing: true
   deployment:
     image:
       # The upstream sample points at a personal RC image that no longer exists.
